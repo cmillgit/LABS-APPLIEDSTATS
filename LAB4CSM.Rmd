@@ -1,0 +1,295 @@
+---
+title: "Lab 4"
+author: "Christian Miller"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Lab 4 Tasks
+
+## Task 1
+```{r}
+setwd("C:/Users/cmill//OneDrive/Desktop/Applied Stats/Labs/Lab 4")
+getwd()
+```
+
+## Task 2
+```{r}
+spruce <- read.csv("SPRUCE.csv")
+tail(spruce)
+file.create("mylab4.R")
+```
+
+## Task 3
+```{r}
+library(s20x)
+
+tsone <- trendscatter(Height ~ BHDiameter, f = 0.5, data = spruce)
+
+spruce.lm <- with(spruce, lm(Height ~ BHDiameter))
+height.res <- residuals(spruce.lm)
+height.fit <- fitted(spruce.lm)
+
+res.fit <- plot(height.res ~ height.fit)
+res.fit.ts <- trendscatter(height.res ~ height.fit, f = 0.5)
+```
+
+The plot of the residuals vs. the fitted values shows a parabolic shape with a positive slope until it reaches a peak, and a negative slope thereafter. This is more symmetric than the shape seen in the Height vs. BHDiameter curve as the slope simply flattens but remains positive.
+
+```{r}
+res.plot <- plot(residuals(spruce.lm))
+
+normcheck(residuals(spruce.lm), shapiro.wilk = TRUE)
+```
+
+The p-value for the Shapiro-Wilk test is 0.29 which is greater than 0.05, so we fail to reject the null hypothesis that the errors are distributed normally.
+
+The diagnostics above, particularly the parabolic trend in the residuals vs. fitted values plot, show that the signal is capturing a lot of the noise in the data which is a problem for the validity of the straight line.
+
+## Task 4
+```{r}
+quad.lm <- with(spruce, lm(Height ~ BHDiameter + I(BHDiameter^2)))
+
+coef(quad.lm)
+
+plot(spruce)
+
+myplot=function(x){
+ quad.lm$coef[1] +quad.lm$coef[2]*x  + quad.lm$coef[3]*x^2
+ } 
+ 
+curve(myplot, lwd=2, col="steelblue",add=TRUE)
+
+quad.fit <- fitted(quad.lm)
+
+plot(quad.lm, which = 1)
+
+normcheck(residuals(quad.lm), shapiro.wilk = TRUE)
+```
+
+The p-value in this Shapiro-Wilk test is 0.684 which is much larger than the previous p-value of 0.29, indicating even greater normality of the residuals than in the previous model. Thus, we fail to reject the null hypothesis that the errors are distributed normally.
+
+## Task 5
+```{r}
+summary(quad.lm)
+```
+### Estimated Coefficients
+
+\(\hat{\beta}_0 = 0.860896\)
+
+\(\hat{\beta}_1 = 1.469592\)
+
+\(\hat{\beta}_2 = -0.027457\)
+
+### Interval Estimates
+
+```{r}
+ciReg(quad.lm)
+```
+
+
+### Fitted Line Equation
+
+\(\widehat{\text{Height}} = 0.860896 + 1.469592 \times \text{BHDiameter} - 0.027457 \times \text{BHDiameter}^2\)
+
+### Model Predictions
+
+```{r}
+predict(quad.lm, data.frame(BHDiameter = c(15, 18, 20)))
+```
+
+The new model predicts that the height of the tree will be 16.72690 meters when the diameter is 15 cm, while the previous model predicted 16.36895 meters
+
+The new model predicts that the height of the tree will be 18.41740 meters when the diameter is 18 cm, while the previous model predicted 17.81338 meters.
+
+The new model predicts that the height of the tree will be 19.26984 meters when the diameter is 20 cm, while the previous model predicted 18.77632 meters.
+
+### Muliple & Adjusted R-squared
+
+```{r}
+summary(spruce.lm)
+
+summary(quad.lm)
+```
+
+The multiple \(R^2\) in the new model is 0.7741 which is larger than the previous model's 0.6569. This means that 77.41% of the variability of the output (Height) can be explained by the model, nearly 12% more than the model without the quadratic term.
+
+The new model is a better fit as its adjusted \(R^2\) is 0.7604, larger than the previous model's adjusted \(R^2\) of 0.6468.
+
+
+### ANOVA
+```{r}
+anova(spruce.lm)
+
+anova(quad.lm)
+```
+
+
+### TSS, MSS, & RSS
+
+
+#### TSS
+
+```{r}
+tss <- with(spruce, sum((Height - mean(Height))^2))
+tss
+```
+
+The Total Sum of Squares is 278.9475
+
+#### MSS
+
+```{r}
+yhat <- with(spruce, predict(quad.lm, data.frame(BHDiameter)))
+mss <- with(spruce, sum((yhat - mean(Height))^2))
+mss
+```
+
+The Model Sum of Squares is 215.9407
+
+#### RSS
+
+```{r}
+rss <- with(spruce, sum((Height - yhat)^2))
+rss
+```
+
+The Residual Sum of Squares is 63.00683
+
+#### MSS/TSS
+
+```{r}
+mss/tss
+```
+
+The value of \(\frac{\text{MSS}}{\text{TSS}}\) is 0.7741266 which is consistent with the value of \(R^2\) found previously. 
+
+## Task 6
+
+### Cooks Plot
+
+```{r}
+cooks20x(quad.lm)
+```
+
+Cook's distance is a metric used in regression analysis to identify influential data points that significantly impact regression coefficients. It measures the effect of removing each observation on the model fit, helping detect outliers and influential observations that may skew the results. The plot above shows three observations that are influential to our model, one of these having a cooks distance greater than 0.20.
+
+### Removing the Most Influential Observation
+
+```{r}
+quad2.lm <- lm(Height ~ BHDiameter + I(BHDiameter^2) , data=spruce[-24,])
+summary(quad.lm)
+summary(quad2.lm)
+```
+
+Shown below are the estimated coefficients from the model with the influential observation (left) and the estimated coefficients from the model without the influential observation (right).
+
+\(\hat{\beta}_0 = 0.860896\rightarrow\hat{\beta}_0 = -0.341500\)
+
+\(\hat{\beta}_1 = 1.469592\rightarrow\hat{\beta}_1 = 1.564793\)
+
+\(\hat{\beta}_2 = -0.027457\rightarrow\hat{\beta}_2 = -0.029242\)
+
+And the new \(R^2\) is 0.8159, indicating an improvement from the model that included the influential observation.
+
+
+## Task 7
+
+### Piecewise Regression
+
+#### Introduction
+
+Suppose we have two line segments which make a reasonable fit to data, joining at a single point \( (x_k, y_k) \) which we may call the change point. We wish to use data to estimate the lines and some measure of fit to determine the change point.
+
+#### Theory
+
+Suppose that for line 2 and line two we have the following formulae:
+
+$$
+\begin{align*}
+\text{l1:} & \quad y = \beta_0 + \beta_1 x \\
+\text{l2:} & \quad y = \beta_0 + \delta + (\beta_1 + \zeta) x
+\end{align*}
+$$
+
+Then, at the change point, we have the two lines intersecting
+
+$$
+\beta_0 + \beta_1 x_k = \beta_0 + \delta + (\beta_1 + \zeta) x_k
+$$
+
+Hence we have
+
+$$
+\delta = -\zeta x_k
+$$
+
+Therefore we can write l2 as
+
+$$
+y = \beta_0 - \zeta x_k + (\beta_1 + \zeta) x
+$$
+
+That is
+
+$$
+y = \beta_0 + \beta_1 x + \zeta (x - x_k)
+$$
+
+l2 is l1 with an adjustment term.
+
+Now we will introduce an indicator function $$\mathbb{I}(x > x_k)$$
+Giving us
+$$
+y = \beta_0 + \beta_1 x + \zeta (x - x_k) \mathbb{I}(x > x_k)
+$$ 
+Where
+\[
+\mathbb{I}(x > x_k) = \begin{cases} 
+1 & \text{if } x > x_k \\
+0 & \text{otherwise} 
+\end{cases}
+\]
+
+#### Application to Spruce Data
+
+```{r}
+sp2.df <- within(spruce, X<-(BHDiameter-18)*(BHDiameter>18))
+
+lmp=lm(Height~BHDiameter + X,data=sp2.df)
+tmp=summary(lmp)
+names(tmp)
+myf = function(x,coef){
+  coef[1]+coef[2]*(x) + coef[3]*(x-18)*(x-18>0)
+}
+
+plot(spruce ,main="Piecewise regression")
+myf(0, coef=tmp$coefficients[,"Estimate"])
+curve(myf(x,coef=tmp$coefficients[,"Estimate"] ),add=TRUE, lwd=2,col="Blue")
+abline(v=18)
+text(18,16,paste("R sq.=",round(tmp$r.squared,4) ))
+```
+
+## Task 8
+```{r}
+library(devtools)
+library(roxygen2)
+library(testthat)
+library(knitr)
+```
+```{r}
+library(MATH4753CSM24)
+myplot((x = spruce$BHDiameter))
+```
+
+The myplot() function takes in a numerical vector, the values of BHDiameter in this case, and returns a numerical vector as output using the model quad.lm we regressed earlier. The output here represents the predicted height of a spruce tree for each value of BHDiameter in the data.  
+
+
+

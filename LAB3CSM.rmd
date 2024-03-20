@@ -1,0 +1,189 @@
+---
+title: "Lab 3"
+author: "Christian Miller"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Lab 3 Tasks
+
+## Task 1
+
+```{r}
+getwd()
+setwd("C:/Users/cmill/OneDrive/Desktop/Applied Stats/Labs/Lab 3")
+
+```
+
+## Task 2
+
+```{r}
+spruce <- read.csv("SPRUCE.csv")
+
+head(spruce)
+
+file.create("mylab3.R")
+```
+## Task 3
+```{r}
+
+heightplot <- plot(Height ~ BHDiameter, bg = "blue", pch = 21, cex = 1.2, ylim = c(0, 1.1*max(Height)), xlim = c(0, 1.1*max(BHDiameter)), xlab = "BHDiameter", ylab = "Height", main = "Height vs. Breast Height Diameter", data = spruce)
+```
+
+There is not a straight line relationship here as there is too much variability in the data, though the data points in the middle appear to be more linear.
+
+```{r}
+library(s20x)
+
+lo <- layout(matrix(1:3, nrow = 1, ncol = 3, byrow = TRUE))
+tsone <- trendscatter(Height ~ BHDiameter, f = 0.5, data = spruce)
+tstwo <- trendscatter(Height ~ BHDiameter, f = 0.6, data = spruce)
+tsthree <- trendscatter(Height ~ BHDiameter, f = 0.7, data = spruce)
+
+spruce.lm <- with(spruce, lm(Height ~ BHDiameter))
+
+lay <- layout(1)
+
+with(spruce,
+     plot(Height ~ BHDiameter, main = "Tree Height vs BHDiameter",
+          xlab = "Breast Height Diameter (cm)",
+          ylab = "Height of Tree (m)",
+          bg = "blue", pch = 21, cex = 1.2,
+          ylim = c(0, 1.1 * max(Height)), xlim = c(0, 1.1 * max(BHDiameter)))
+)
+abline(spruce.lm)
+```
+
+The straight line is not appropriate in this case and the trendscatter plot shows a curvature for each of the f-values.
+
+## Task 4
+```{r}
+layout1 <- layout(matrix( 1:4, nr = 2, nc = 2, byrow = TRUE))
+
+layout.show(4)
+
+mycex <- 1.0
+
+with(spruce,
+     plot(Height ~ BHDiameter, main = "Tree Height vs BHDiameter",
+          xlab = "Breast Height Diameter (cm)",
+          ylab = "Height of Tree (m)",
+          bg = "blue", pch = 21, cex = mycex,
+          ylim = c(0, 1.1 * max(Height)), xlim = c(0, 1.1 * max(BHDiameter)))
+)
+abline(spruce.lm)
+
+yhat <- with(spruce, predict(spruce.lm, data.frame(BHDiameter)))
+
+with(spruce,
+     plot(Height ~ BHDiameter, main = "RSS",
+          xlab = "Breast Height Diameter (cm)",
+          ylab = "Height of Tree (m)",
+          bg = "blue", pch = 21, cex = mycex,
+          ylim = c(0, 1.1*max(Height)), 
+          xlim = c(0, 1.1*max(BHDiameter)))
+     )
+with(spruce, {
+  segments(BHDiameter, Height, BHDiameter, yhat)
+})
+abline(spruce.lm)
+
+with(spruce,
+     plot(Height ~ BHDiameter, main = "MSS",
+          xlab = "Breast Height Diameter (cm)",
+          ylab = "Height of Tree (m)",
+          bg = "blue", pch = 21, cex = mycex,
+          ylim = c(0, 1.1*max(Height)),
+          xlim = c(0, 1.1*max(BHDiameter)))
+     )
+with(spruce, abline(h = mean(Height)))
+
+with(spruce, segments(BHDiameter, mean(Height), BHDiameter, yhat, col = "red"))
+abline(spruce.lm)
+
+with(spruce,
+     plot(Height ~ BHDiameter, main = "TSS Plot by Christian Miller",
+          xlab = "Breast Height Diameter (cm)",
+          ylab = "Height of Tree (m)",
+          bg = "blue", pch = 21, cex = mycex,
+          ylim = c(0, 1.1*max(Height)),
+          xlim = c(0, 1.1*max(BHDiameter)))
+)
+with(spruce, abline(h = mean(Height)))
+with(spruce, segments(BHDiameter, Height, BHDiameter, mean(Height), col = "green"))
+
+```
+
+### Total Sum of Squares
+```{r}
+TSS <- with(spruce, sum((Height - mean(Height))^2))
+TSS
+```
+The TSS is 278.9475
+
+### Model Sum of Squares
+```{r}
+MSS <- with(spruce, sum((yhat - mean(Height))^2))
+MSS
+```
+The MSS is 183.2447
+
+### Residual Sum of Squares
+```{r}
+RSS <- with(spruce, sum((Height - yhat)^2))
+RSS
+```
+The RSS is 95.70281
+
+### R-Squared
+```{r}
+R2 <- MSS/TSS
+R2
+```
+The R-squared is equal to 0.6569146, meaning that roughly 65.7% of the variability in the output can be explained by the model.
+
+```{r}
+RSS + MSS
+TSS
+```
+Yes, the RSS + MSS = TSS (equating to 278.9475)
+
+## Task 5
+```{r}
+summary(spruce.lm)
+```
+The value of the slope is 0.48147 and the intercept is 9.14684.
+
+The equation of the fitted line is: E(Height) = 9.14684 + 0.48147*BHDiameter
+
+```{r}
+predict(spruce.lm, data.frame(BHDiameter = c(15, 18, 20)))
+```
+The model predicts that the height of spruce will be 16.36895 meters when the diameter is 15 cm.
+The model predicts that the height of spruce will be 17.81338 meters when the diameter is 18 cm.
+The model predicts that the height of spruce will be 18.77632 meters when the diameter is 20 cm.
+
+## Task 6
+```{r}
+library(ggplot2)
+
+g <- ggplot(spruce, aes(x = BHDiameter, y = Height, color = BHDiameter))
+g <- g + geom_point() + 
+  geom_line() +
+  geom_smooth(method = "lm")
+g = g + ggtitle("Tree Height vs Breast Height Diameter - Plot by Christian Miller")
+g
+
+```
+
+
+## Task 7
+
+

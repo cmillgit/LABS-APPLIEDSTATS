@@ -1,0 +1,131 @@
+---
+title: "Lab 1"
+author: "Christian Miller"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Tasks
+
+Lab 1 Tasks
+
+## Task 1
+
+```{r}
+getwd()
+```
+## Task 2
+
+```{r}
+ddt <- read.csv("DDT-1.csv")
+head(ddt)
+```
+## Task 3
+```{r}
+sapply(ddt, class)
+```
+The qualitative variables are River and Species.
+The quantitative variables are Mile, Length, Weight, and DDT.
+
+```{r}
+table(ddt$SPECIES)
+```
+There are three species.
+
+```{r}
+ddt[ddt$SPECIES == "LMBASS" & ddt$WEIGHT > 800,]
+```
+
+```{r}
+ddt[ddt$RIVER == "SCM" & ddt$DDT > 4.0,]
+```
+
+
+## Task 4
+```{r}
+L <- ddt$LENGTH
+mean(L)
+```
+Q.1) The mean length of fish is 42.8125 centimeters.
+
+```{r}
+SD <- ddt$WEIGHT
+sd(SD)
+```
+Q.2) The standard deviation of the weight of fish is 376.5461 grams.
+
+```{r}
+with(ddt, plot(WEIGHT, LENGTH))
+```
+
+Q.3) 0 (No)
+
+```{r}
+v <- c(1:20)
+v/20
+```
+Q.4) 1
+
+## Task 5
+```{r}
+riv <- with(ddt, table(RIVER))
+riv
+barplot(riv, col = rainbow(4))
+
+spriv <- with(ddt, table(RIVER, SPECIES))
+barplot(spriv, col = rainbow(4))
+```
+
+## Task 6
+```{r}
+sp <- with(ddt, table(SPECIES))
+pie(sp, col = rainbow(3))
+
+pie(riv, col = rainbow(4))
+```
+
+## Task 7
+```{r}
+with(ddt, boxplot(DDT, ylab = "DDT", col = "blue"))
+
+with(ddt, boxplot(WEIGHT, ylab = "WEIGHT", col = "red"))
+
+with(ddt, boxplot(LENGTH, ylab = "LENGTH", col = "green"))
+```
+
+## Task 8
+```{r}
+fishcol=with(ddt,ifelse(SPECIES=="CCATFISH","Red",
+                        ifelse(SPECIES=="SMBUFFALO","Blue","Green")))
+rivcol=with(ddt, ifelse(RIVER=="FCM","Red", 
+                        ifelse(RIVER=="LCM","Blue",
+                               ifelse(RIVER=="SCM","Green","Black"))))
+
+coplot(LENGTH ~ WEIGHT | RIVER, data = ddt, col = rivcol)
+
+coplot(DDT ~ WEIGHT | SPECIES, data = ddt, col = fishcol)
+```
+
+## Task 9
+```{r}
+library(ggplot2)
+
+ggplot(data = ddt, mapping = aes(SPECIES, WEIGHT, fill = RIVER)) + 
+  geom_boxplot() +
+  ggtitle("Christian Miller")
+
+ggplot(data = ddt, mapping = aes(RIVER, LENGTH, fill = SPECIES)) + 
+  geom_violin() +
+  ggtitle("Christian Miller")
+
+ggplot(data = ddt, mapping = aes(WEIGHT, LENGTH, color = SPECIES)) + 
+  geom_point() +
+  ggtitle("Christian Miller")
+```

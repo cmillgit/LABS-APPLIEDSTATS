@@ -1,0 +1,87 @@
+---
+title: "Lab 2"
+author: "Christian Miller"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Tasks
+
+## Task 1
+```{r}
+setwd("C:/Users/cmill/OneDrive/Desktop/Applied Stats/Labs/Lab 2")
+getwd()
+```
+## Task 2
+```{r}
+epagas <- read.csv("EPAGAS-1.csv")
+head(epagas)
+```
+
+## Task 3
+```{r}
+mpg <- c(epagas$MPG)
+z <- ((mpg - mean(mpg)) / sd(mpg))
+
+mean(z)
+
+(sd(z)^2)
+
+```
+
+```{r}
+mpg[abs(z)>=2 & abs(z)<=3]
+```
+The values of mpg that are possible outliers are 30.0, 42.1, and 31.8.
+
+```{r}
+mpg[abs(z) > 3]
+```
+The value of mpg that is a defined outlier is 44.9.
+
+```{r}
+library(lattice)
+mycol <- ifelse(abs(z)>3, "Red",
+        ifelse(abs(z)>=2 & abs(z)<=3,"Blue", "Black")) 
+dotplot(mpg, col = mycol)
+```
+
+## Task 4
+```{r}
+boxplot(mpg, notch = TRUE, col = "black", main = "MPG", horizontal = TRUE )
+```
+
+According to Chebyshev's theorem, at least 3/4 of the mpg data will lie within two standard deviations from the mean.
+
+```{r}
+length(mpg[abs(z) < 2]) / length(mpg)
+```
+The exact proportion of the mpg data within two standard deviations of the mean is 0.96, thus the data is consistent with Chebyshev.
+
+```{r}
+length(mpg[mean(mpg)-(3*sd(mpg)) < mpg & mpg < mean(mpg)+ (3*sd(mpg)) ])/length(mpg)
+```
+```{r}
+length(mpg[mean(mpg)-(1*sd(mpg)) < mpg & mpg < mean(mpg)+ (1*sd(mpg)) ])/length(mpg) 
+```
+
+
+According to the empirical rule, approximately 99% of the data will lie within three standard deviations of the mean, approximately 95% of the  data within two standard deviations, and approximately 68% of the data within one standard deviation. As shown in the values calculated above, this rule corresponds very strongly to the mpg data.
+
+```{r}
+hist(mpg)
+```
+
+The histogram above further indicates the validity of the Empirical Rule in this case, and the assumptions of unimodality and symmetry about the mean can be reasonably verified by the shape of the frequency distribution.
+
+
+
+
+
+
