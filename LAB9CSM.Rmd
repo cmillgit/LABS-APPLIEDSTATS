@@ -1,0 +1,395 @@
+---
+title: "Lab 9"
+author: "Christian Miller"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Lab 9 Tasks
+
+## Task 1
+
+```{r}
+getwd()
+```
+
+## Task 2: Understanding myboot()
+
+A) Within the `myboot()` function, the line `y=sample(x,n*iter,replace=TRUE)` creates a sample of size n*iter from the vector x, where n is the length of x and iter is the number of sampling iterations. This sampling process is done with replacement.
+
+B) Within `myboot()`, the line `ci=quantile(xstat,c(alpha/2,1-alpha/2))` forms a confidence interval from the vector `xstat`, where the lower bound is equal to alpha/2, and the upper bound is 1-alpha/2, where alpha is the chosen significance level.
+
+
+The datum in x being selected with equal probability ensures randomness and independence of the sample. This ultimately ensures that the distribution of the statistic of interest is unbiased, giving us a better reflection of the characteristics of the population.
+
+```{r}
+set.seed(35)
+sam = round(rnorm(20, mean = 10, sd = 4), 2)
+
+unique(sample(sam, 20, replace = TRUE))
+unique(sample(sam, 20, replace = TRUE))
+unique(sample(sam, 20, replace = TRUE))
+unique(sample(sam, 20, replace = TRUE))
+unique(sample(sam, 20, replace = TRUE))
+```
+The output above shows 5 vectors containing the unique elements from each of the 5 samples of the 'sam' vector. These vectors are of different sizes because sampling is done with replacement, therefore the different samples could contain a varying number of duplicates and thus varying amounts of unique elements.
+
+
+```{r}
+unique(sample(sam, 20, replace = FALSE))
+unique(sample(sam, 20, replace = FALSE))
+unique(sample(sam, 20, replace = FALSE))
+unique(sample(sam, 20, replace = FALSE))
+unique(sample(sam, 20, replace = FALSE))
+```
+The output above shows 5 vectors containing the unique elements drawn from 5 samples of the 'sam' vector. Because sampling is done without replacement in this case, each sample only contains unique elements. Thus the output from the code above actually just shows the entire sample, and each sample is just a different combination of the elements from the original 'sam' vector due to the fact that sample size is equal to the size of 'sam'.
+
+```{r}
+#sample(sam, 21, replace = FALSE)
+```
+Running this code prints an error because the sample size of 21 is larger than the vector from which the samples are drawn, and we are sampling without replacement so no values from 'sam' may be repeated.
+
+
+## Task 3: 95% Bootstrap Intervals
+
+```{r}
+myboot2<-function(iter=10000,x,fun="mean",alpha=0.05,cx=1.5,...){  #Notice where the ... is repeated in the code
+n=length(x)   #sample size
+
+y=sample(x,n*iter,replace=TRUE)
+rs.mat=matrix(y,nr=n,nc=iter,byrow=TRUE)
+xstat=apply(rs.mat,2,fun) # xstat is a vector and will have iter values in it 
+ci=quantile(xstat,c(alpha/2,1-alpha/2))# Nice way to form a confidence interval
+# A histogram follows
+# The object para will contain the parameters used to make the histogram
+para=hist(xstat,freq=FALSE,las=1,
+main=paste("Histogram of Bootstrap sample statistics","\n","alpha=",alpha," iter=",iter,sep=""),
+...)
+
+#mat will be a matrix that contains the data, this is done so that I can use apply()
+mat=matrix(x,nr=length(x),nc=1,byrow=TRUE)
+
+#pte is the point estimate
+#This uses whatever fun is
+pte=apply(mat,2,fun)
+abline(v=pte,lwd=3,col="Black")# Vertical line
+segments(ci[1],0,ci[2],0,lwd=4)      #Make the segment for the ci
+text(ci[1],0,paste("(",round(ci[1],2),sep=""),col="Red",cex=cx)
+text(ci[2],0,paste(round(ci[2],2),")",sep=""),col="Red",cex=cx)
+
+# plot the point estimate 1/2 way up the density
+text(pte,max(para$density)/2,round(pte,2),cex=cx)
+
+invisible(list(ci=ci,fun=fun,x=x))# Some output to use if necessary
+}
+```
+
+### Estimates for Mean
+
+```{r}
+set.seed(39)
+sam <- rnorm(25, mean = 25, sd = 10)
+myboot2(iter = 10000, sam, fun = "mean", alpha = 0.05, xlab="mean",col="Purple",cx=1.5)
+```
+The population mean for a normal distribution is equal to the sample sample mean for a sufficiently large sample size n. The point estimate of 23.88 is close to the population mean, only 1.22 below the population mean of 25.
+
+As calculated in the output and displayed in the plot above, the population falls within the 95% confidence interval.
+
+
+```{r}
+set.seed(30)
+sam <- rchisq(20, df = 3)
+myboot2(iter = 10000, sam, fun = "mean", alpha = 0.05, xlab="mean",col="green",cx=1.5)
+```
+A chi-square distribution has a mean equal to its degrees of freedom, 3 in this case. The point estimate of 2.94 is approximately 0.06 below the population mean of 3.
+
+As calculated in the output and displayed in the plot above, the population falls within the 95% confidence interval.
+
+
+```{r}
+set.seed(40)
+sam <- rgamma(30, shape = 2, scale = 3)
+myboot2(iter = 10000, sam, fun = "mean", alpha = 0.05, xlab="mean",col="blue",cx=1.5)
+```
+The population mean for a gamma distribution is equal to its shape times its scale, thus the population mean in this case is 6. The point estimate, 6.5, is only 0.5 above the population mean of 6.
+
+As calculated in the output and displayed in the plot above, the population falls within the 95% confidence interval.
+
+
+```{r}
+set.seed(10)
+sam <- rbeta(20, shape1 = 3, shape2 = 4)
+myboot2(iter = 10000, sam, fun = "mean", alpha = 0.05, xlab="mean",col="orange",cx=1.5)
+```
+The population mean for a beta distribution is equal to alpha/(alpha+beta), or shape1/(shape1+shape2) in this case. This gives us the population mean of approximately 0.429, and the point estimate of 0.41 is only about 0.018 away from this.
+
+As calculated and displayed in the plot above, the population falls within the 95% confidence interval, indicating that our point estimate is plausible.
+
+### Estimates for Variance
+
+```{r}
+set.seed(39)
+sam <- rnorm(25, mean = 25, sd = 10)
+myboot2(iter = 10000, sam, fun = "var", alpha = 0.2, xlab="Variance",col="purple",cx=1.5)
+```
+
+```{r}
+set.seed(30)
+sam <- rchisq(20, df = 3)
+myboot2(iter = 10000, sam, fun = "var", alpha = 0.2, xlab="Variance",col="blue",cx=1.5)
+```
+
+```{r}
+set.seed(40)
+sam <- rgamma(30, shape = 2, scale = 3)
+myboot2(iter = 10000, sam, fun = "var", alpha = 0.2, xlab="Variance",col="yellow",cx=1.5)
+```
+
+```{r}
+set.seed(10)
+sam <- rbeta(20, shape1 = 3, shape2 = 4)
+myboot2(iter = 10000, sam, fun = "var", alpha = 0.2, xlab="Variance",col="purple",cx=1.5)
+```
+
+## Task 4: Adjusting myboot()
+
+```{r}
+myboot1<-function(iter=10000,x,fun="mean",alpha=0.05,cx=1.5,...){  #Notice where the ... is repeated in the code
+n=length(x)   #sample size
+
+y=sample(x,n*iter,replace=TRUE)
+rs.mat=matrix(y,nr=n,nc=iter,byrow=TRUE)
+xstat=apply(rs.mat,2,fun) # xstat is a vector and will have iter values in it 
+
+ci=quantile(xstat,c(alpha/2,1-alpha/2))# Nice way to form a confidence interval
+# A histogram follows
+# The object para will contain the parameters used to make the histogram
+para=hist(xstat,freq=FALSE,las=1,
+main=paste("Histogram of Bootstrap sample statistics","\n","alpha=",alpha," iter=",iter,sep=""),
+...)
+
+#mat will be a matrix that contains the data, this is done so that I can use apply()
+mat=matrix(x,nr=length(x),nc=1,byrow=TRUE)
+
+#pte is the point estimate
+#This uses whatever fun is
+pte=apply(mat,2,fun)
+abline(v=pte,lwd=3,col="Black")# Vertical line
+segments(ci[1],0,ci[2],0,lwd=4)      #Make the segment for the ci
+text(ci[1],0,paste("(",round(ci[1],2),sep=""),col="Red",cex=cx)
+text(ci[2],0,paste(round(ci[2],2),")",sep=""),col="Red",cex=cx)
+
+# plot the point estimate 1/2 way up the density
+text(pte,max(para$density)/2,round(pte,2),cex=cx)
+
+list(ci=ci,fun=fun,x=x, xstat = xstat)# Some output to use if necessary
+}
+```
+
+```{r}
+sam <- c(1,1,1,2,2,2,2,3,3,3,4,4)
+obj <- myboot1(x = sam, fun = "median", xlab="Median",col="green",cx=1.5)
+```
+
+```{r}
+obj$ci
+```
+
+The interval estimate for the median is (1.5, 3).
+
+
+## Task 5: Estimates for Mean/Median
+
+```{r}
+mdm <- function(x){
+  mean(x)/median(x)
+}
+```
+
+### 95% Confidence Intervals
+```{r}
+set.seed(39)
+sam=rnorm(25,mean=25,sd=10)
+myboot2(x=sam, fun = "mdm", alpha = 0.05, xlab="Mean/Median",col="blue",cx=1.5)
+```
+
+```{r}
+set.seed(30)
+sam=rchisq(20, df = 3)
+myboot2(x=sam, fun = "mdm", alpha = 0.05, xlab="Mean/Median",col="yellow",cx=1.5)
+```
+
+```{r}
+set.seed(40)
+sam = rgamma(30, shape = 2, scale = 3)
+myboot2(x=sam, fun = "mdm", alpha = 0.05, xlab="Mean/Median",col="purple",cx=1.5)
+```
+
+```{r}
+set.seed(10)
+sam = rbeta(20, shape1 = 3, shape2 = 4)
+myboot2(x=sam, fun = "mdm", alpha = 0.05, xlab="Mean/Median",col="green",cx=1.5)
+```
+
+### 70% Confidence Intervals
+
+```{r}
+set.seed(39)
+sam=rnorm(25,mean=25,sd=10)
+myboot2(x=sam, fun = "mdm", alpha = 0.3, xlab="Mean/Median",col="orange",cx=1.5)
+```
+
+```{r}
+set.seed(30)
+sam=rchisq(20, df = 3)
+myboot2(x=sam, fun = "mdm", alpha = 0.3, xlab="Mean/Median",col="pink",cx=1.5)
+```
+
+```{r}
+set.seed(40)
+sam = rgamma(30, shape = 2, scale = 3)
+myboot2(x=sam, fun = "mdm", alpha = 0.3, xlab="Mean/Median",col="orange4",cx=1.5)
+```
+
+```{r}
+set.seed(10)
+sam = rbeta(20, shape1 = 3, shape2 = 4)
+myboot2(x=sam, fun = "mdm", alpha = 0.3, xlab="Mean/Median",col="lightblue",cx=1.5)
+```
+
+## Task 6: 80% Confidence Intervals for Other Distributions
+
+```{r}
+sambinom <- rbinom(20, size = 30, prob = 0.5)
+
+myboot2(x = sambinom, fun = "mean", alpha = 0.2, xlab="Mean",col="purple",cx=1.5)
+myboot2(x = sambinom, fun = "var", alpha = 0.2, xlab="Variance",col="purple3",cx=1.5)
+```
+
+```{r}
+samexp <- rexp(n = 20, rate = 1)
+myboot2(x = samexp, fun = "mean", alpha = 0.2, xlab="Mean",col="blue",cx=1.5)
+myboot2(x = samexp, fun = "var", alpha = 0.2, xlab="Variance",col="skyblue",cx=1.5)
+```
+
+```{r}
+samF <- rf(n = 20, df1 = 10, df2 = 10)
+myboot2(x = samF, fun = "mean", alpha = 0.2, xlab="Mean",col="yellow",cx=1.5)
+myboot2(x = samF, fun = "var", alpha = 0.2, xlab="Variance",col="yellow3",cx=1.5)
+```
+
+```{r}
+samgeom <- rgeom(n = 20, prob = 0.2)
+myboot2(x = samgeom, fun = "mean", alpha = 0.2, xlab="Mean",col="green3",cx=1.5)
+myboot2(x = samgeom, fun = "var", alpha = 0.2, xlab="Variance",col="green4",cx=1.5)
+```
+
+
+## Task 7: Bootstrap vs Theoretical Interval Estimates
+
+```{r}
+set.seed(68)
+sam = rnorm(20, mean = 10, sd = 4)
+myboot2(x = sam, fun = "sd", alpha = 0.05, xlab="Standard Deviation",col="skyblue",cx=1.5)
+myboot2(x = sam, fun = "IQR", alpha = 0.05, xlab="IQR",col="lightgreen",cx=1.5)
+```
+
+```{r}
+set.seed(68)
+sam = rnorm(20, mean = 10, sd = 4)
+
+ybar <- mean(sam)
+alpha <- 0.05
+z <- qnorm(1-alpha/2, mean = 0, sd = 1)
+
+lower <- ybar - z*(4/sqrt(20))
+upper <- ybar + z*(4/sqrt(20))
+
+CI <- c(lower, upper)
+CI
+```
+
+```{r}
+myboot2(x = sam, fun = "mean", alpha = 0.05, xlab="Mean",col="purple2",cx=1.5)
+```
+
+The 95% confidence interval calculated by hand is (8.71, 12.21) which is quite close to the one calculated with the `myboot2()` function, (8.86, 11.88).
+
+## Task 8
+
+```{r}
+library(MATH4753CSM24)
+myboot2(x = fire$DAMAGE, xlab="Mean",col="lightgreen",cx=1.5)
+```
+
+## Task 9
+
+```{r}
+superboot <- function(iter = 10000, x, fun = "mean", alpha = 0.05, cx = 1.5, plotType = "histogram", ...) {
+  n <- length(x) # Sample size
+  
+  y <- sample(x, n * iter, replace = TRUE)
+  rs.mat <- matrix(y, nr = n, nc = iter, byrow = TRUE)
+  xstat <- apply(rs.mat, 2, fun) 
+  ci <- quantile(xstat, c(alpha / 2, 1 - alpha / 2))
+  
+  mat <- matrix(x, nr = length(x), nc = 1, byrow = TRUE)
+  pte <- apply(mat, 2, fun)
+  
+  if (plotType == "histogram") {
+    para <- hist(xstat, freq = FALSE, las = 1,
+                 main = paste("Histogram of Bootstrap Sample Statistics", "\n", "alpha=", alpha, " iter=", iter, sep = ""),
+                 ...)
+    abline(v = pte, lwd = 3, col = "Black")
+  } else if (plotType == "density") {
+    para <- plot(density(xstat), main = "Density Plot of Bootstrap Sample Statistics", ...)
+    abline(v = pte, lwd = 3, col = "Black")
+  } else if (plotType == "qq") {
+    qqnorm(xstat)
+    qqline(xstat, col = "red")
+  } else if (plotType == "boxplot") {
+    boxplot(xstat, main = "Boxplot of Bootstrap Sample Statistics", ...)
+  }
+  
+  segments(ci[1], 0, ci[2], 0, lwd = 4)
+  text(ci[1], 0, paste("(", round(ci[1], 2), sep = ""), col = "Red", cex = cx)
+  text(ci[2], 0, paste(round(ci[2], 2), ")", sep = ""), col = "Red", cex = cx)
+  
+  if (plotType == "histogram" || plotType == "density") {
+    text(pte, max(para$density) / 2, round(pte, 2), cex = cx)
+  }
+  
+  invisible(list(ci = ci, fun = fun, x = x))
+}
+```
+
+```{r}
+
+superboot(x = fire$DAMAGE, iter = 10000, fun = "mean", alpha = 0.05, cx = 1.5, plotType = "density")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
